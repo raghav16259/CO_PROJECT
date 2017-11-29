@@ -33,7 +33,7 @@ public class Arm_Sim
         }
 
         String address="0x0";
-        String instructions[]={"ADD","SUB","RSB","MUL","AND","ORR","EOR","MOV","MVN","CMP","LDR","LDI","STR","STI","BAL","BNE","BL","PRINT","EXIT","BEQ","BLT","BGT","BLE","BGE","READ"};
+        String instructions[]={"ADD","SUB","RSB","MUL","AND","ORR","EOR","MOV","MVN","CMP","LDR","LDI","STR","STI","BAL","BNE","BL","SWI_PRINT","SWI_EXIT","BEQ","BLT","BGT","BLE","BGE","SWI_READ"};
         while(!maphex.get(address).equals("0xEF000011"))
         {
             System.out.println("Fetch instruction "+maphex.get(address)+" from address "+address);
@@ -68,8 +68,7 @@ public class Arm_Sim
     }
 
 
-    public static void execute(int[] infor, int o,String bin)
-    {
+    public static void execute(int[] infor, int o,String bin) throws IOException {
         if(o==0)	//add
         {
 
@@ -291,10 +290,7 @@ public class Arm_Sim
             {
                 reg[infor[2]]=register2[infor[0]][infor[1]/4];
             }
-            else
-            {
 
-            }
         }
         else if(o==12) //STR
         {
@@ -352,8 +348,13 @@ public class Arm_Sim
             }
             else if(o==23)
             {
-                if((N==0)||(Z==1))
-                    reg[15]+=(add+4);
+                if((N==0)||(Z==1)) 
+                {
+                    reg[15] += (add + 4);
+                    String hex=Integer.toHexString(reg[15]);
+                    String address="0x"+hex.toUpperCase();
+                    
+                }
             }
             else if(o==17)
             {
@@ -363,7 +364,9 @@ public class Arm_Sim
             }
             else if(o==24)
             {
-
+                Reader.init(System.in);
+                reg[0]=Reader.nextInt();
+                
             }
             //System.out.println(reg[15]);
         }
@@ -485,7 +488,22 @@ public class Arm_Sim
 
             return info;
         }
-        return null;
+
+        else
+        {
+            if(index==17)
+                System.out.println("it is a Print instruction");
+            else if(index==24)
+                System.out.println("it is a Read instruction");
+            int[] info=new int[4];
+            info[0]=0;
+            info[1]=0;
+            info[2]=0;
+            info[3]=2;
+
+            return info;
+        }
+
     }
 
     public static String toBinary(char x)
@@ -615,7 +633,7 @@ public class Arm_Sim
             {
                 return 18;
             }
-            else if(bin.substring(24,32).equals("01101010"))
+            else if(bin.substring(24,32).equals("01101100"))
             {
                 return 24;
             }
