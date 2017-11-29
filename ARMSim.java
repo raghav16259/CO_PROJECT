@@ -199,6 +199,7 @@ public class ARMSim
     		System.out.println("WRITEBACK: Write "+reg[infor[2]]+" to R"+infor[2]);
     	}
     	
+    	
     	else if(o==7)	//MOV
     	{
     		if(infor[3]==0)
@@ -218,6 +219,7 @@ public class ARMSim
  
     	}
     	
+    	
     	else if(o==8)	//MVN
     	{
     		if(infor[3]==0)
@@ -234,10 +236,9 @@ public class ARMSim
     		
     		System.out.println("MEMORY: No memory operation");
     		System.out.println("WRITEBACK: Write "+reg[infor[2]]+" to R"+infor[2]);
-    	}
-    	
-    	
+    	}	
     }
+    
     
     public static int[] decode2(int index, String bin)
     {
