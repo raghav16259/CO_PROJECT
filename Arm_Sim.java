@@ -1,62 +1,384 @@
-import com.sun.org.apache.xalan.internal.xsltc.dom.LoadDocument;
-
 import java.io.*;
 import java.util.HashMap;
 import java.util.StringTokenizer;
 
 public class Arm_Sim
 {
+    static int reg[]=new int[16];
+    static int register2[][]=new int[16][2048];
+    static int N=0;
+    static int Z=0;
     public static void main(String args[]) throws IOException
     {
         HashMap<String,String> mapbin=new HashMap<String, String>();
         HashMap<String,String> maphex=new HashMap<String, String>();
         InputStream is = new FileInputStream("in.txt");
         Reader.init(is);
-        int c;
         String l;
-        double registers[]=new double[16];
+
+
 
         while((l=Reader.reader.readLine())!=null)
         {
-           String split[]=l.split(" ");
-           String s="";
-           for(int i=0;i<8;i++)
-           {
-               char x = split[1].charAt(2 + i);
-               s=s+toBinary(x);
-           }
+            String split[]=l.split(" ");
+            String s="";
+            for(int i=0;i<8;i++)
+            {
+                char x = split[1].charAt(2 + i);
+                s=s+toBinary(x);
+            }
 
-           mapbin.put(split[0],s);
-           maphex.put(split[0],split[1]);
-           //System.out.println(s);
+            mapbin.put(split[0],s);
+            maphex.put(split[0],split[1]);
         }
 
         String address="0x0";
-        int count=0;
-        String instructions[]={"ADD","SUB","RSB","MUL","AND","ORR","EOR","MOV","MVN","CMP","LDR","LDI","STR","STI","B","BNE","BL","PRINT","EXIT"};
+        String instructions[]={"ADD","SUB","RSB","MUL","AND","ORR","EOR","MOV","MVN","CMP","LDR","LDI","STR","STI","BAL","BNE","BL","PRINT","EXIT","BEQ","BLT","BGT","BLE","BGE","READ"};
         while(!maphex.get(address).equals("0xEF000011"))
         {
             System.out.println("Fetch instruction "+maphex.get(address)+" from address "+address);
-            count+=4;
+            reg[15]+=4;
             int op=decode(mapbin.get(address));
             System.out.print("DECODE: Operation is "+instructions[op]+", ");
-            decode2(op,mapbin.get(address));
-            String hex=Integer.toHexString(count);
+
+            int[] inforec=new int[4];
+            inforec=decode2(op,mapbin.get(address));
+
+            if(inforec[3]==1)
+            {
+                System.out.println("Read Registers: R"+inforec[0]+" = "+reg[inforec[0]]);
+            }
+
+            else if(inforec[3]==0)
+            {
+                System.out.println("Read Registers: R"+inforec[0]+" = "+reg[inforec[0]]+", R"+inforec[1]+" = "+reg[inforec[1]]);
+            }
+
+            execute(inforec, op,mapbin.get(address));
+
+            String hex=Integer.toHexString(reg[15]);
             address="0x"+hex.toUpperCase();
             System.out.println();
         }
+
         System.out.println("Fetch instruction 0xEF000011 from address "+address);
         System.out.println("MEMORY: No memory operation");
         System.out.println("EXIT:");
 
     }
 
-    public static void decode2(int index, String bin)
+
+    public static void execute(int[] infor, int o,String bin)
     {
+        if(o==0)	//add
+        {
+
+            if(infor[3]==0)
+            {
+                System.out.println("EXECUTE: Add "+reg[infor[0]]+" and "+reg[infor[1]]);
+                reg[infor[2]]=reg[infor[1]]+reg[infor[0]];
+            }
+
+            else
+            {
+                System.out.println("EXECUTE: Add "+reg[infor[0]]+" and "+infor[1]);
+                reg[infor[2]]=infor[1]+reg[infor[0]];
+
+            }
+
+
+            System.out.println("MEMORY: No memory operation");
+            System.out.println("WRITEBACK: Write "+reg[infor[2]]+" to R"+infor[2]);
+        }
+
+
+        else if(o==1)	//sub
+        {
+
+            if(infor[3]==0)
+            {
+                System.out.println("EXECUTE: Subtract "+reg[infor[0]]+" and "+reg[infor[1]]);
+                reg[infor[2]]=reg[infor[0]]-reg[infor[1]];
+            }
+
+            else
+            {
+                System.out.println("EXECUTE: Subtract "+reg[infor[0]]+" and "+infor[1]);
+                reg[infor[2]]=reg[infor[0]]-infor[1];
+            }
+
+
+            System.out.println("MEMORY: No memory operation");
+            System.out.println("WRITEBACK: Write "+reg[infor[2]]+" to R"+infor[2]);
+        }
+
+
+
+        else if(o==2)	//rev sub
+        {
+
+            if(infor[3]==0)
+            {
+                System.out.println("EXECUTE: Subtract "+reg[infor[1]]+" and "+reg[infor[0]]);
+                reg[infor[2]]=reg[infor[1]]-reg[infor[0]];
+            }
+
+            else
+            {
+                System.out.println("EXECUTE: Subtract "+infor[1]+" and "+reg[infor[0]]);
+                reg[infor[2]]=infor[1]-reg[infor[0]];
+            }
+
+
+            System.out.println("MEMORY: No memory operation");
+            System.out.println("WRITEBACK: Write "+reg[infor[2]]+" to R"+infor[2]);
+        }
+
+
+        else if(o==3)	//mul
+        {
+
+            if(infor[3]==0)
+            {
+                System.out.println("EXECUTE: Multiply "+reg[infor[0]]+" and "+reg[infor[1]]);
+                reg[infor[2]]=reg[infor[1]]*reg[infor[0]];
+            }
+
+            else
+            {
+                System.out.println("EXECUTE: Multiply "+reg[infor[0]]+" and "+infor[1]);
+                reg[infor[2]]=infor[1]*reg[infor[0]];
+
+            }
+
+
+            System.out.println("MEMORY: No memory operation");
+            System.out.println("WRITEBACK: Write "+reg[infor[2]]+" to R"+infor[2]);
+        }
+
+
+        else if(o==4)	//AND
+        {
+
+
+            if(infor[3]==0)
+            {
+                System.out.println("EXECUTE: AND "+reg[infor[0]]+" and "+reg[infor[1]]);
+                reg[infor[2]]=reg[infor[1]]&reg[infor[0]];
+            }
+
+            else
+            {
+                System.out.println("EXECUTE: AND "+reg[infor[0]]+" and "+infor[1]);
+                reg[infor[2]]=infor[1]&reg[infor[0]];
+
+            }
+
+
+            System.out.println("MEMORY: No memory operation");
+            System.out.println("WRITEBACK: Write "+reg[infor[2]]+" to R"+infor[2]);
+        }
+
+
+        else if(o==5)	//ORR
+        {
+
+            if(infor[3]==0)
+            {
+                System.out.println("EXECUTE: OR "+reg[infor[0]]+" and "+reg[infor[1]]);
+                reg[infor[2]]=reg[infor[1]]|reg[infor[0]];
+            }
+
+            else
+            {
+                System.out.println("EXECUTE: OR "+reg[infor[0]]+" and "+infor[1]);
+                reg[infor[2]]=infor[1]|reg[infor[0]];
+
+            }
+
+
+            System.out.println("MEMORY: No memory operation");
+            System.out.println("WRITEBACK: Write "+reg[infor[2]]+" to R"+infor[2]);
+        }
+
+
+        else if(o==6)	//EOR
+        {
+
+            if(infor[3]==0)
+            {
+                System.out.println("EXECUTE: EOR "+reg[infor[0]]+" and "+reg[infor[1]]);
+                reg[infor[2]]=reg[infor[1]]^reg[infor[0]];
+            }
+
+            else
+            {
+                System.out.println("EXECUTE: EOR "+reg[infor[0]]+" and "+infor[1]);
+                reg[infor[2]]=infor[1]^reg[infor[0]];
+
+            }
+
+
+            System.out.println("MEMORY: No memory operation");
+            System.out.println("WRITEBACK: Write "+reg[infor[2]]+" to R"+infor[2]);
+        }
+
+
+        else if(o==7)	//MOV
+        {
+            if(infor[3]==0)
+            {
+                System.out.println("EXECUTE: MOV "+reg[infor[1]]+" to R"+infor[2]);
+                reg[infor[2]]=reg[infor[1]];
+
+            }
+
+            else
+            {
+                System.out.println("EXECUTE: MOV "+infor[1]+" to R"+infor[2]);
+                reg[infor[2]]=infor[1];
+
+            }
+
+            System.out.println("MEMORY: No memory operation");
+            System.out.println("WRITEBACK: Write "+reg[infor[2]]+" to R"+infor[2]);
+
+        }
+
+
+        else if(o==8)	//MVN
+        {
+            if(infor[3]==0)
+            {
+                System.out.println("EXECUTE: MOV "+reg[infor[1]]+" to R"+infor[2]);
+                reg[infor[2]]=~reg[infor[1]];
+
+            }
+
+            else
+            {
+                System.out.println("EXECUTE: MOV "+infor[1]+" to R"+infor[2]);
+                reg[infor[2]]=~infor[1];
+
+            }
+
+            System.out.println("MEMORY: No memory operation");
+            System.out.println("WRITEBACK: Write "+reg[infor[2]]+" to R"+infor[2]);
+        }
+
+        else if(o==9) //CMP
+        {
+            if(infor[3]==0)
+            {
+                if (reg[infor[0]] - reg[infor[1]] < 0)
+                    N = 1;
+                else if (reg[infor[0]] - reg[infor[1]] == 0)
+                    Z = 1;
+            }
+            else
+            {
+                if (infor[0] - reg[infor[1]] < 0)
+                    N = 1;
+                else if (infor[0] - reg[infor[1]] == 0)
+                    Z = 1;
+            }
+
+        }
+
+        else if(o==10) // LDR
+        {
+            if(infor[3]==1)
+            {
+                reg[infor[2]]=register2[infor[0]][infor[1]/4];
+            }
+            else
+            {
+
+            }
+        }
+        else if(o==12) //STR
+        {
+            if(infor[3]==1)
+            {
+                register2[infor[0]][infor[1]/4]=reg[infor[2]];
+            }
+        }
+        else
+        {
+            int binary=0;
+            for(int i=0;i<24;i++)
+            {
+                if(bin.charAt(i+8)=='1')
+                    binary+=(int)(Math.pow(2,23-i));
+            }
+
+            int offset=binary;
+            int bit=offset>>23;
+            int add;
+            if(bit==1)
+            {
+                add=((0xFF000000)|(offset*4));
+            }
+            else
+                add=offset*4;
+            if(o!=17 && o!=18 && o!=24)
+            System.out.println("Offset is "+add);
+            if(o==14)
+                reg[15]+=(add+4);
+            else if(o==15)
+            {
+                if(Z!=1)
+                    reg[15]+=(add+4);
+            }
+            else if(o==19)
+            {
+                if(Z==1)
+                    reg[15]+=(add+4);
+            }
+            else if(o==20)
+            {
+                if((N==1)&&(Z==0))
+                    reg[15]+=(add+4);
+            }
+            else if(o==21)
+            {
+                if((N==0)&&(Z==0))
+                    reg[15]+=(add+4);
+            }
+            else if(o==22)
+            {
+                if((N==1)||(Z==1))
+                    reg[15]+=(add+4);
+            }
+            else if(o==23)
+            {
+                if((N==0)||(Z==1))
+                    reg[15]+=(add+4);
+            }
+            else if(o==17)
+            {
+               System.out.println("EXECUTE: Print value in R1 = "+reg[1]);
+               System.out.println("MEMORY: No memory operation");
+               System.out.println("WRITEBACK: No writeback operation");
+            }
+            else if(o==24)
+            {
+
+            }
+            //System.out.println(reg[15]);
+        }
+    }
+
+
+    public static int[] decode2(int index, String bin)
+    {
+
         if(index<=13)
         {
+            int c=0;
             String firstop=bin.substring(12,16);
             int reg0=0;
+
             for(int i=0;i<firstop.length();i++)
             {
                 if(firstop.charAt(i)=='1')
@@ -65,12 +387,48 @@ public class Arm_Sim
 
             System.out.print("First Operand is R"+reg0);
 
+
+            int reg1=0;
+
             if(index<=9)
             {
                 if(bin.charAt(6)=='1')
                 {
+                    c=1;
                     String secondop=bin.substring(25,32);
-                    int reg1=0;
+                    //int reg1=0;
+                    for(int i=0;i<secondop.length();i++)
+                    {
+                        if(secondop.charAt(i)=='1')
+                            reg1=reg1+(int)Math.pow(2,secondop.length()-i-1);
+                    }
+
+                    System.out.println(", immediate Second Operand is "+reg1);
+                }
+
+                else
+                {
+
+                    String secondop=bin.substring(28,32);
+                    //int reg1=0;
+                    for(int i=0; i<secondop.length(); i++)
+                    {
+                        if(secondop.charAt(i)=='1')
+                            reg1=reg1+(int)Math.pow(2,secondop.length()-i-1);
+                    }
+
+                    System.out.println(", Second Operand is R"+reg1);
+
+                }
+            }
+
+            else
+            {
+                if(bin.charAt(6)=='0')
+                {
+                    c=1;
+                    String secondop=bin.substring(20,32);
+                    //int reg1=0;
                     for(int i=0;i<secondop.length();i++)
                     {
                         if(secondop.charAt(i)=='1')
@@ -83,15 +441,14 @@ public class Arm_Sim
                 else
                 {
                     String secondop=bin.substring(28,32);
-                    int reg1=0;
-                    for(int i=0;i<secondop.length();i++)
+                    //int reg1=0;
+                    for(int i=0; i<secondop.length(); i++)
                     {
                         if(secondop.charAt(i)=='1')
                             reg1=reg1+(int)Math.pow(2,secondop.length()-i-1);
                     }
 
                     System.out.println(", Second Operand is R"+reg1);
-
                 }
             }
 
@@ -105,10 +462,30 @@ public class Arm_Sim
 
             System.out.println("Destination Register is R"+reg2);
 
+            int[] info=new int[4];
+            info[0]=reg0;
+            info[1]=reg1;
+            info[2]=reg2;
+            if(c==1)
+                info[3]=1;
+            else
+                info[3]=0;
 
+            return info;
 
         }
 
+        else if((index>=14 && index<=16)||(index>=19 && index<=23))
+        {
+            int[] info=new int[4];
+            info[0]=0;
+            info[1]=0;
+            info[2]=0;
+            info[3]=2;
+
+            return info;
+        }
+        return null;
     }
 
     public static String toBinary(char x)
@@ -148,6 +525,7 @@ public class Arm_Sim
             case 'F':
                 return "1111";
         }
+
         return null;
     }
 
@@ -156,10 +534,6 @@ public class Arm_Sim
         String format=bin.substring(4,6);
         String opcode=null;
 
-        if(bin.equals("00011010111111111111111111111001")) //bne
-        {
-            return 15;
-        }
 
         if(format.equals("00"))
         {
@@ -195,17 +569,11 @@ public class Arm_Sim
         {
             if(bin.charAt(11)=='1')
             {
-               if(bin.charAt(6)=='1')
-                   return 10;
-               else
-                   return 11;
+                return 10;
             }
             else
             {
-                if(bin.charAt(6)=='1')
-                    return 12;
-                else
-                    return 13;
+                return 12;
             }
         }
 
@@ -215,34 +583,51 @@ public class Arm_Sim
             {
                 if(bin.charAt(7)=='0')
                 {
-                    return 14;
-                }
-
-                else if(bin.charAt(7)=='1')
-                {
-                    return 16;
+                   String cond=bin.substring(0,4);
+                   if(cond.equals("0000"))
+                       return 19;
+                   else if(cond.equals("0001"))
+                       return 15;
+                   else if(cond.equals("1011"))
+                       return 20;
+                   else if(cond.equals("1100"))
+                       return 21;
+                   else if(cond.equals("1101"))
+                       return 22;
+                   else if(cond.equals("1010"))
+                       return 23;
+                   else if(cond.equals("1110"))
+                       return 14;
+                   else
+                       return 14;
                 }
             }
         }
 
         else if(bin.substring(4,8).equals("1111"))
         {
-             if(bin.substring(24,32).equals("01101011"))
-             {
-                 return 17;
-             }
+            if(bin.substring(24,32).equals("01101011"))
+            {
+                return 17;
+            }
 
-             else if(bin.substring(24,32).equals("00010001"))
-             {
-                 return 18;
-             }
+            else if(bin.substring(24,32).equals("00010001"))
+            {
+                return 18;
+            }
+            else if(bin.substring(24,32).equals("01101010"))
+            {
+                return 24;
+            }
         }
 
         return 0;
     }
 }
 
-class Reader {
+
+class Reader
+{
     static BufferedReader reader;
     static StringTokenizer tokenizer;
 
