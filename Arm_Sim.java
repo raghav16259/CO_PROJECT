@@ -8,6 +8,7 @@ public class Arm_Sim
     static int register2[][]=new int[16][2048];
     static int N=0;
     static int Z=0;
+    static int read=0;
     public static void main(String args[]) throws IOException
     {
         HashMap<String,String> mapbin=new HashMap<String, String>();
@@ -33,9 +34,10 @@ public class Arm_Sim
         }
 
         String address="0x0";
-        String instructions[]={"ADD","SUB","RSB","MUL","AND","ORR","EOR","MOV","MVN","CMP","LDR","LDI","STR","STI","BAL","BNE","BL","SWI_PRINT","SWI_EXIT","BEQ","BLT","BGT","BLE","BGE","SWI_READ"};
+        String instructions[]={"ADD","SUB","RSB","MUL","AND","ORR","EOR","MOV","MVN","CMP","LDR","LDI","STR","STI","BAL","BNE","BL","SWI","SWI_EXIT","BEQ","BLT","BGT","BLE","BGE","SWI"};
         while(!maphex.get(address).equals("0xEF000011"))
         {
+
             System.out.println("Fetch instruction "+maphex.get(address)+" from address "+address);
             reg[15]+=4;
             int op=decode(mapbin.get(address));
@@ -269,18 +271,51 @@ public class Arm_Sim
         {
             if(infor[3]==0)
             {
-                if (reg[infor[0]] - reg[infor[1]] < 0)
+                if (reg[infor[0]] - reg[infor[1]] < 0) {
                     N = 1;
-                else if (reg[infor[0]] - reg[infor[1]] == 0)
+                    Z = 0;
+                    System.out.println("EXECUTE: Flags updated - N=1 and Z=0");
+                }
+                else if (reg[infor[0]] - reg[infor[1]] == 0) {
                     Z = 1;
+                    N = 0;
+                    System.out.println("EXECUTE: Flags updated - N=0 and Z=1");
+                }
+                else
+                {
+                    N=0;
+                    Z=0;
+                    System.out.println("EXECUTE: Flags updated - N=0 and Z=0");
+
+                }
             }
+
             else
             {
                 if (infor[0] - reg[infor[1]] < 0)
+                {
                     N = 1;
+                    Z = 0;
+                    System.out.println("EXECUTE: Flags updated - N=1 and Z=0");
+                }
                 else if (infor[0] - reg[infor[1]] == 0)
+                {
+                    N=0;
                     Z = 1;
+                    System.out.println("EXECUTE: Flags updated - N=0 and Z=1");
+                }
+                else
+                {
+                    N=0;
+                    Z=0;
+                    System.out.println("EXECUTE: Flags updated - N=0 and Z=0");
+
+                }
             }
+
+
+            System.out.println("MEMORY: No memory operation");
+            System.out.println("WRITEBACK: No writeback operation");
 
         }
 
@@ -289,16 +324,24 @@ public class Arm_Sim
             if(infor[3]==1)
             {
                 reg[infor[2]]=register2[infor[0]][infor[1]/4];
+                System.out.println("EXECUTE: No execute operation");
+                System.out.println("MEMORY: Register R"+infor[2]+" loaded with value "+register2[infor[0]][infor[1]/4]);
+                System.out.println("WRITEBACK: No writeback operation");
             }
 
         }
+
         else if(o==12) //STR
         {
             if(infor[3]==1)
             {
                 register2[infor[0]][infor[1]/4]=reg[infor[2]];
+                System.out.println("EXECUTE: No execute operation");
+                System.out.println("MEMORY: Value "+reg[infor[2]]+" stored at location R"+infor[0]+" + "+infor[1]);
+                System.out.println("WRITEBACK: No writeback operation");
             }
         }
+
         else
         {
             int binary=0;
@@ -311,62 +354,170 @@ public class Arm_Sim
             int offset=binary;
             int bit=offset>>23;
             int add;
+
             if(bit==1)
             {
                 add=((0xFF000000)|(offset*4));
             }
+
             else
                 add=offset*4;
             if(o!=17 && o!=18 && o!=24)
-            System.out.println("Offset is "+add);
+                System.out.println("Offset is "+add);
+
             if(o==14)
+            {
                 reg[15]+=(add+4);
+                String hex=Integer.toHexString(reg[15]);
+                String address="0x"+hex.toUpperCase();
+                System.out.println("EXECUTE: Branch to address "+address);
+                System.out.println("MEMORY: No memory operation");
+                System.out.println("WRITEBACK: No writeback operation");
+            }
+
             else if(o==15)
             {
                 if(Z!=1)
+                {
                     reg[15]+=(add+4);
+                    String hex=Integer.toHexString(reg[15]);
+                    String address="0x"+hex.toUpperCase();
+                    System.out.println("EXECUTE: Branch to address "+address);
+                    System.out.println("MEMORY: No memory operation");
+                    System.out.println("WRITEBACK: No writeback operation");
+                }
+
+
+                else
+                {
+                    System.out.println("EXECUTE: Branch condition failed, hence branch not taken");
+                    System.out.println("MEMORY: No memory operation");
+                    System.out.println("WRITEBACK: No writeback operation");
+                }
             }
+
             else if(o==19)
             {
                 if(Z==1)
+                {
                     reg[15]+=(add+4);
+                    String hex=Integer.toHexString(reg[15]);
+                    String address="0x"+hex.toUpperCase();
+                    System.out.println("EXECUTE: Branch to address "+address);
+                    System.out.println("MEMORY: No memory operation");
+                    System.out.println("WRITEBACK: No writeback operation");
+                }
+
+                else
+                {
+                    System.out.println("EXECUTE: Branch condition failed, hence branch not taken");
+                    System.out.println("MEMORY: No memory operation");
+                    System.out.println("WRITEBACK: No writeback operation");
+                }
             }
+
             else if(o==20)
             {
                 if((N==1)&&(Z==0))
+                {
                     reg[15]+=(add+4);
+                    String hex=Integer.toHexString(reg[15]);
+                    String address="0x"+hex.toUpperCase();
+                    System.out.println("EXECUTE: Branch to address "+address);
+                    System.out.println("MEMORY: No memory operation");
+                    System.out.println("WRITEBACK: No writeback operation");
+                }
+
+
+                else
+                {
+                    System.out.println("EXECUTE: Branch condition failed, hence branch not taken");
+                    System.out.println("MEMORY: No memory operation");
+                    System.out.println("WRITEBACK: No writeback operation");
+                }
             }
+
             else if(o==21)
             {
                 if((N==0)&&(Z==0))
+                {
                     reg[15]+=(add+4);
+                    String hex=Integer.toHexString(reg[15]);
+                    String address="0x"+hex.toUpperCase();
+                    System.out.println("EXECUTE: Branch to address "+address);
+                    System.out.println("MEMORY: No memory operation");
+                    System.out.println("WRITEBACK: No writeback operation");
+                }
+
+                else
+                {
+                    System.out.println("EXECUTE: Branch condition failed, hence branch not taken");
+                    System.out.println("MEMORY: No memory operation");
+                    System.out.println("WRITEBACK: No writeback operation");
+                }
             }
+
             else if(o==22)
             {
                 if((N==1)||(Z==1))
+                {
                     reg[15]+=(add+4);
+                    String hex=Integer.toHexString(reg[15]);
+                    String address="0x"+hex.toUpperCase();
+                    System.out.println("EXECUTE: Branch to address "+address);
+                    System.out.println("MEMORY: No memory operation");
+                    System.out.println("WRITEBACK: No writeback operation");
+                }
+
+                else
+                {
+                    System.out.println("EXECUTE: Branch condition failed, hence branch not taken");
+                    System.out.println("MEMORY: No memory operation");
+                    System.out.println("WRITEBACK: No writeback operation");
+                }
             }
             else if(o==23)
             {
-                if((N==0)||(Z==1)) 
+                if((N==0)||(Z==1))
                 {
                     reg[15] += (add + 4);
                     String hex=Integer.toHexString(reg[15]);
                     String address="0x"+hex.toUpperCase();
-                    
+                    System.out.println("EXECUTE: Branch to address "+address);
+                    System.out.println("MEMORY: No memory operation");
+                    System.out.println("WRITEBACK: No writeback operation");
+                }
+
+                else
+                {
+                    System.out.println("EXECUTE: Branch condition failed, hence branch not taken");
+                    System.out.println("MEMORY: No memory operation");
+                    System.out.println("WRITEBACK: No writeback operation");
                 }
             }
+
             else if(o==17)
             {
-               System.out.println("EXECUTE: Print value in R1 = "+reg[1]);
-               System.out.println("MEMORY: No memory operation");
-               System.out.println("WRITEBACK: No writeback operation");
+                System.out.println("EXECUTE: Print value in R1 = "+reg[1]);
+                System.out.println("MEMORY: No memory operation");
+                System.out.println("WRITEBACK: No writeback operation");
             }
+
             else if(o==24)
             {
-                Reader.init(System.in);
-                reg[0]=Reader.nextInt();
-                
+                if(read==0)
+                {
+                    Reader.init(System.in);
+                    reg[0]=Reader.nextInt();
+                    read++;
+                }
+                else
+                    reg[0]=Reader.nextInt();
+
+
+                System.out.println("EXECUTE: Input read and stored in R0");
+                System.out.println("MEMORY: No memory operation");
+                System.out.println("WRITEBACK: No writeback operation");
             }
             //System.out.println(reg[15]);
         }
@@ -565,9 +716,10 @@ public class Arm_Sim
                 case "0011":
                     return 2;
                 case "0000":
-                    return 3;
-                //case "0000":
-                // return 4;
+                    if(bin.charAt(6)=='0'&&bin.substring(24,28).equals("1001"))
+                        return 3;
+                    else
+                        return 4;
                 case "1100":
                     return 5;
                 case "0001":
@@ -601,23 +753,23 @@ public class Arm_Sim
             {
                 if(bin.charAt(7)=='0')
                 {
-                   String cond=bin.substring(0,4);
-                   if(cond.equals("0000"))
-                       return 19;
-                   else if(cond.equals("0001"))
-                       return 15;
-                   else if(cond.equals("1011"))
-                       return 20;
-                   else if(cond.equals("1100"))
-                       return 21;
-                   else if(cond.equals("1101"))
-                       return 22;
-                   else if(cond.equals("1010"))
-                       return 23;
-                   else if(cond.equals("1110"))
-                       return 14;
-                   else
-                       return 14;
+                    String cond=bin.substring(0,4);
+                    if(cond.equals("0000"))
+                        return 19;
+                    else if(cond.equals("0001"))
+                        return 15;
+                    else if(cond.equals("1011"))
+                        return 20;
+                    else if(cond.equals("1100"))
+                        return 21;
+                    else if(cond.equals("1101"))
+                        return 22;
+                    else if(cond.equals("1010"))
+                        return 23;
+                    else if(cond.equals("1110"))
+                        return 14;
+                    else
+                        return 14;
                 }
             }
         }
